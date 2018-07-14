@@ -1,0 +1,14 @@
+{
+    "name": "kairos-project/api-formatter",
+    "description": "The API response formatter component for the Kairos API project part.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "matthieu vallance",
+            "email": "matthieu.vallance@cscfa.fr"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {}
+}
