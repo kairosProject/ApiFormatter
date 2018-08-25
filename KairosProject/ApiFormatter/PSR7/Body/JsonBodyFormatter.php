@@ -18,6 +18,7 @@ namespace KairosProject\ApiFormatter\PSR7\Body;
 
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use KairosProject\ApiController\Event\ResponseEventInterface;
+use KairosProject\ApiFormatter\HttpCode;
 
 /**
  * Json body formatter
@@ -69,7 +70,10 @@ class JsonBodyFormatter
      * Create response
      *
      * Hydrate the response content with the json representation of the event response. To change the parameter to get
-     * in the event bage, provide a parameter name as constructor argument.
+     * in the event bag, provide a parameter name as constructor argument.
+     *
+     * If the response content is an exception, the message will be inserted in an error key, and the error state will
+     * become the response status code.
      *
      * @param ResponseEventInterface   $event      The original event, containing the response and the body content
      * @param string                   $eventName  The original event name
@@ -84,11 +88,21 @@ class JsonBodyFormatter
         EventDispatcherInterface $dispatcher
     ) {
         $response = $event->getResponse();
-        $response->getBody()
-            ->write(
-                json_encode(
-                    $event->getParameter($this->responseContent)
-                )
-            );
+
+        $responseContent = $event->getParameter($this->responseContent);
+        if ($responseContent instanceof \Exception) {
+            $code = $responseContent->getCode();
+
+            if (!array_key_exists($code, HttpCode::HTTP_CODE)) {
+                $code = HttpCode::INTERNAL_SERVER_ERROR;
+            }
+
+            $response = $response->withStatus($code, HttpCode::HTTP_CODE[$code]);
+            $responseContent = ['error' => $responseContent->getMessage()];
+        }
+
+        $response->getBody()->write(json_encode($responseContent));
+
+        $event->setResponse($response);
     }
 }

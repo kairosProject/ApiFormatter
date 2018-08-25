@@ -83,6 +83,60 @@ class JsonBodyFormatterTest extends AbstractTestClass
     }
 
     /**
+     * Exception provider
+     *
+     * Return a set of exception to validate the JsonBodyFormatter::createResponse method
+     *
+     * @return []
+     */
+    public function exceptionProvider()
+    {
+        return [
+            [new \Exception('message', 500)],
+            [new \Exception('message', 800)]
+        ];
+    }
+
+    /**
+     * Exception body test.
+     *
+     * Validate the KairosProject\ApiFormatter\PSR7\Body\JsonBodyFormatter::createResponse method in case of content
+     * is exception.
+     *
+     * @param \Exception $content The tested exception
+     *
+     * @return       void
+     * @dataProvider exceptionProvider
+     */
+    public function testExceptionBody(\Exception $content)
+    {
+        $event = $this->createMock(ResponseEventInterface::class);
+
+        $response = $this->createMock(ResponseInterface::class);
+        $body = $this->createMock(StreamInterface::class);
+
+        $this->getInvocationBuilder($event, $this->once(), 'getResponse')
+            ->willReturn($response);
+        $this->getInvocationBuilder($event, $this->once(), 'getParameter')
+            ->with(JsonBodyFormatter::RESPONSE_CONTENT)
+            ->willReturn($content);
+        $this->getInvocationBuilder($response, $this->once(), 'getBody')
+            ->willReturn($body);
+        $this->getInvocationBuilder($response, $this->once(), 'withStatus')
+            ->with($this->equalTo(500), $this->equalTo('Internal Server Error'))
+            ->willReturn($response);
+        $this->getInvocationBuilder($body, $this->once(), 'write')
+            ->with($this->equalTo(json_encode(['error' => 'message'])));
+
+        $instance = $this->getInstance();
+        $instance->createResponse(
+            $event,
+            '',
+            $this->createMock(EventDispatcherInterface::class)
+        );
+    }
+
+    /**
      * Get tested class
      *
      * Return the tested class name
